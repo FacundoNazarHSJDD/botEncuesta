@@ -1,0 +1,14 @@
+use dw;
+ select TOP 1 
+  'jdiasdacostalima@gmail.com' AS MAIL_PACIENTE,
+  r.ID_PACIENTE
+  from TS_Fact_Recepcion r
+  left join TS_Dim_Paciente p on p.ID_PACIENTE = r.ID_PACIENTE
+  INNER JOIN TS_Fact_Atencion A ON A.COD_DET_PREST_RECEP_AMB = R.COD_DET_PREST_RECEP_AMB
+  where r.FECHA_HORA_RECEP BETWEEN dateadd(DD,-1,CONVERT(DATE,GETDATE())) AND CONVERT(DATE,GETDATE())
+  and len(MAIL_1) >=4
+  AND ANULADA_RECEPCION = 'N'
+  AND ANULADA_DET_RECEPCION = 'N'
+  AND ESTADO_ATENCION = 'FINALIZADA'
+  AND ANULADA_DET_ATENCION = 'N'
+  group by r.ID_PACIENTE, p.MAIL_1, datepart(W, FECHA_HORA_RECEP)
