@@ -161,9 +161,8 @@ and tfr.ID_PACIENTE not in  (SELECT  tfi.ID_PACIENTE
 							and tfi.ID_FUNCION_INTERNACION = 5)
 and tfr.ID_PACIENTE not in (select id_paciente from dw.dbo.Dw_Registro_Encuestas s where convert(date,s.Fecha_Envio) = convert(date,getdate()))        
 group by tfr.ID_PACIENTE , tdp.MAIL_1 ,datepart (w,FECHA_HORA_RECEP)	, tdsc.SERVICIO_ORIGEN,tdp.APELLIDO_NOMBRE_PACIENTE  , tdsc.UNIDAD_NEGOCIO
-	
 """,
-"Encuesta_INT_QUIR_Adultos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
+"Encuesta_INT_QUIR_Adultos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO AS SERVICIO_ORIGEN
 FROM
 (SELECT tfi.FECHA_INT, tfi.FECHA_ALTA_MEDICA, tdp.ID_PACIENTE, tdp.TIPO_NRO_DOC_PACIENTE, tdp.MAIL_1 , w.fecha_hora_ini_intervencion,tdsc.ID_SERVICIO_CENTRO, tdsc.SERVICIO,
 tfi.ADULTO_PEDIATRICO, tdp.APELLIDO_NOMBRE_PACIENTE , case when fecha_hora_ini_intervencion > 0 then 'QUIRURGICO' else 'CLINICO' end as CLIN_QUIR
@@ -185,7 +184,7 @@ where t1.CLIN_QUIR = 'QUIRURGICO' and t1.ADULTO_PEDIATRICO = 'ADULTO'
 and ID_PACIENTE not in (select id_paciente from dw.dbo.Dw_Registro_Encuestas s where convert(date,s.Fecha_Envio) = convert(date,getdate()))        
 group by MAIL_1, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
 """,
-"Encuesta_INT_QUIR_Pediatricos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
+"Encuesta_INT_QUIR_Pediatricos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO AS SERVICIO_ORIGEN
 FROM
 (SELECT tfi.FECHA_INT, tfi.FECHA_ALTA_MEDICA, tdp.ID_PACIENTE, tdp.TIPO_NRO_DOC_PACIENTE, tdp.MAIL_1 , w.fecha_hora_ini_intervencion,tdsc.ID_SERVICIO_CENTRO, tdsc.SERVICIO,
 tfi.ADULTO_PEDIATRICO, tdp.APELLIDO_NOMBRE_PACIENTE , case when fecha_hora_ini_intervencion > 0 then 'QUIRURGICO' else 'CLINICO' end as CLIN_QUIR
@@ -207,7 +206,7 @@ where t1.CLIN_QUIR = 'QUIRURGICO' and t1.ADULTO_PEDIATRICO = 'PEDIATRICO'
 and ID_PACIENTE not in (select id_paciente from dw.dbo.Dw_Registro_Encuestas s where convert(date,s.Fecha_Envio) = convert(date,getdate())) 
 group by MAIL_1, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
 """,
-"Encuesta_INT_CLIN_Adultos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
+"Encuesta_INT_CLIN_Adultos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO AS SERVICIO_ORIGEN
 FROM
 (SELECT tfi.FECHA_INT, tfi.FECHA_ALTA_MEDICA, tdp.ID_PACIENTE, tdp.TIPO_NRO_DOC_PACIENTE, tdp.MAIL_1 , w.fecha_hora_ini_intervencion,tdsc.ID_SERVICIO_CENTRO, tdsc.SERVICIO,
 tfi.ADULTO_PEDIATRICO, tdp.APELLIDO_NOMBRE_PACIENTE , case when fecha_hora_ini_intervencion > 0 then 'QUIRURGICO' else 'CLINICO' end as CLIN_QUIR
@@ -229,7 +228,7 @@ where t1.CLIN_QUIR = 'CLINICO' and t1.ADULTO_PEDIATRICO = 'ADULTO'
 and ID_PACIENTE not in (select id_paciente from dw.dbo.Dw_Registro_Encuestas s where convert(date,s.Fecha_Envio) = convert(date,getdate()))        
 group by MAIL_1, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
 """,
-"Encuesta_INT_CLIN_Pediatricos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO
+"Encuesta_INT_CLIN_Pediatricos":"""SELECT MAIL_1 AS MAIL_PACIENTE, ID_PACIENTE, APELLIDO_NOMBRE_PACIENTE, SERVICIO AS SERVICIO_ORIGEN
 FROM
 (SELECT tfi.FECHA_INT, tfi.FECHA_ALTA_MEDICA, tdp.ID_PACIENTE, tdp.TIPO_NRO_DOC_PACIENTE, tdp.MAIL_1 , w.fecha_hora_ini_intervencion,tdsc.ID_SERVICIO_CENTRO, tdsc.SERVICIO,
 tfi.ADULTO_PEDIATRICO, tdp.APELLIDO_NOMBRE_PACIENTE , case when fecha_hora_ini_intervencion > 0 then 'QUIRURGICO' else 'CLINICO' end as CLIN_QUIR
@@ -379,7 +378,7 @@ def obtener_diccionario_links(connection):
 def enviar_correos(diccionario_links, diccionario_querys, conexion, configuracion):
     for unidad_negocio, query in diccionario_querys.items():
         lista_pacientes = []
-        #print(unidad_negocio)
+        print(unidad_negocio)
         #print(query)
         cursor = conexion.cursor()
         cursor.execute(query)
