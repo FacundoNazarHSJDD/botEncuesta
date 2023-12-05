@@ -1,23 +1,11 @@
 import pyodbc
 import smtplib
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.image import MIMEImage
 import pandas as pd
 import json
 import os
 
-def cargar_configuracion():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    config_path = os.path.join(script_dir, 'config.json')
 
-    try:
-        with open(config_path) as archivo_config:
-            configuracion = json.load(archivo_config)
-        return configuracion
-    except Exception as e:
-        print(f"Error al cargar el archivo de configuración: {e}")
-        return None
 
 # Variable de entorno que indica el entorno de ejecución (desarrollo o producción)
 env="dev"
@@ -155,7 +143,7 @@ diccionario_querys={
     tdp.MAIL_1 AS MAIL_PACIENTE,
     tfr.ID_PACIENTE,
     tdp.APELLIDO_NOMBRE_PACIENTE,
-    tdsc.SERVICIO_ORIGEN as SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdsc.UNIDAD_NEGOCIO
 FROM
     dw.dbo.TS_Fact_Recepcion tfr
@@ -193,7 +181,7 @@ GROUP BY
     tfr.ID_PACIENTE,
     tdp.MAIL_1,
     DATEPART(w, FECHA_HORA_RECEP),
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdp.APELLIDO_NOMBRE_PACIENTE,
     tdsc.UNIDAD_NEGOCIO
 """,
@@ -201,7 +189,7 @@ GROUP BY
     tdp.MAIL_1 AS MAIL_PACIENTE,
     tfr.ID_PACIENTE,
     tdp.APELLIDO_NOMBRE_PACIENTE,
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdsc.UNIDAD_NEGOCIO
 FROM
     dw.dbo.TS_Fact_Recepcion tfr
@@ -239,7 +227,7 @@ GROUP BY
     tfr.ID_PACIENTE,
     tdp.MAIL_1,
     DATEPART(w, FECHA_HORA_RECEP),
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdp.APELLIDO_NOMBRE_PACIENTE,
     tdsc.UNIDAD_NEGOCIO
 """,
@@ -247,7 +235,7 @@ GROUP BY
     tdp.MAIL_1 AS MAIL_PACIENTE,
     tfr.ID_PACIENTE,
     tdp.APELLIDO_NOMBRE_PACIENTE,
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdsc.UNIDAD_NEGOCIO
 FROM
     dw.dbo.TS_Fact_Recepcion tfr
@@ -284,7 +272,7 @@ GROUP BY
     tfr.ID_PACIENTE,
     tdp.MAIL_1,
     DATEPART(w, FECHA_HORA_RECEP),
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdp.APELLIDO_NOMBRE_PACIENTE,
     tdsc.UNIDAD_NEGOCIO
 """,
@@ -292,7 +280,7 @@ GROUP BY
     tdp.MAIL_1 AS MAIL_PACIENTE,
     tfr.ID_PACIENTE,
     tdp.APELLIDO_NOMBRE_PACIENTE,
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdsc.UNIDAD_NEGOCIO
 FROM
     dw.dbo.TS_Fact_Recepcion tfr
@@ -329,16 +317,21 @@ GROUP BY
     tfr.ID_PACIENTE,
     tdp.MAIL_1,
     DATEPART(w, FECHA_HORA_RECEP),
-    tdsc.SERVICIO_ORIGEN,
+    tdsc.SERVICIO_ESPECIALIDAD,
     tdp.APELLIDO_NOMBRE_PACIENTE,
     tdsc.UNIDAD_NEGOCIO
 """
 }
 
 
-# Función para conectar a la base de datos con las credenciales cargadas desde el archivo JSON
-def conectar_bd(configuracion):
-    connection_string = f"DRIVER={{SQL Server}};SERVER={configuracion['server']};DATABASE={configuracion['database']};UID={configuracion['username']};PWD={configuracion['password']}"
+# Función para conectar a la base de datos
+def conectar_bd():
+    server = '10.0.0.235'
+    database = 'DW'
+    username = 'Scheduler_02'
+    password = 'Hospi21*talDw02'
+
+    connection_string = f"DRIVER={{SQL Server}};SERVER={server};DATABASE={database};UID={username};PWD={password}"
     connection = pyodbc.connect(connection_string)
     return connection
 
@@ -358,18 +351,13 @@ def obtener_diccionario_links(connection):
 def enviar_correos(diccionario_links, diccionario_querys, conexion, configuracion):
     for unidad_negocio, query in diccionario_querys.items():
         lista_pacientes = []
-        print(unidad_negocio)
-        print(query)
         cursor = conexion.cursor()
         cursor.execute(query)
-        resultados = pd.DataFrame(cursor.fetchall())
         
         for row in cursor.fetchall():
-            print(row)
             # Añade cada paciente a la lista con sus detalles
             lista_pacientes.append([row.MAIL_PACIENTE, row.MAIL_PACIENTE, row.ID_PACIENTE, row.APELLIDO_NOMBRE_PACIENTE, row.SERVICIO_ORIGEN])
 
-        
         # Obtén los resultados de la consulta en un DataFrame
         resultados = pd.DataFrame(cursor.fetchall())
 
@@ -377,6 +365,9 @@ def enviar_correos(diccionario_links, diccionario_querys, conexion, configuracio
         nombre_excel = f"resultados_{unidad_negocio}.xlsx"
         resultados.to_excel(nombre_excel, index=False)
 
+        for row in cursor.fetchall():
+            # Añade cada paciente a la lista con sus detalles
+            lista_pacientes.append([row.MAIL_PACIENTE, row.MAIL_PACIENTE, row.ID_PACIENTE, row.APELLIDO_NOMBRE_PACIENTE, row.SERVICIO_ORIGEN])
 
         #print(unidad_negocio)
         #print(lista_pacientes)
@@ -392,80 +383,27 @@ def enviar_correo_individual(lista_pacientes, link_form, unidad_negocio, configu
     server.starttls()
     server.login(configuracion['email']['email_address'], configuracion['email']['email_password'])
 
-    script_path = os.path.dirname(os.path.abspath(__file__))
-    
-# Definir rutas de imágenes una sola vez fuera del bucle
-    rutaImagenHeader = os.path.join(script_path, "Header.png")
-    rutaImagenFooter = os.path.join(script_path, "Footer.png")
-
-    
-
-    #for paciente in lista_pacientes:
-    #    print(paciente[0])
+    for paciente in lista_pacientes:
+        print(paciente[0])
+        msg = MIMEText(f"""
+            <div class='row' style='text-align: justify'>Estimado paciente</div class='row'><br>
+            <div class='row' style='text-align: justify'>Con el fin de conocer su experiencia respecto a nuestra atención, queremos realizarle algunas preguntas. La misma tomará 1 minuto y los datos recabados son con fines estadísticos.</div class='row'><br>
+            <div class='row' style='text-align: justify'>Su colaboración nos ayudará a brindar un mejor servicio. A continuación le indicamos el link donde podrá realizar la <a href='{link_form}'>ENCUESTA</a></div class='row'><br>
+            <div class='row' style='text-align: justify'>Desde ya, agradecemos su tiempo y predisposición.</div class='row'><br>
+            <div class='row' style='text-align: justify'>Cordialmente.</div class='row'><div class='row' style='text-align: justify'><p style='font-weight:bold'>Servicio al Cliente</p></div class='row'><div class='row' style='text-align: justify'>Departamento de Calidad</div class='row'>
+        """, 'html')
+        msg['Subject'] = 'Encuesta'
+        msg['From'] = 'noreply.dataanalytics@sanjuandedios.org.ar'
+        if env=="dev":
+            msg['To'] = 'lfacundonazar@gmail.com'
+        else: 
+            msg['To'] = paciente[0]
+            pass
+        print (msg['To'])
+        #print(unidad_negocio, link_form)
+        server.sendmail('noreply.dataanalytics@sanjuandedios.org.ar', 'lfacundonazar@gmail.com', msg.as_string())
+        insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
         
-    botonHtml = f"""
-            <table style='width: 100%; height: 100%;'>
-                <tr>
-                    <td style='text-align: center; vertical-align: middle;'>
-                        <a href='{link_form}' style='display: inline-block; width: 160px; height: 30px; padding: 5px 10px; background-color: #003365; color: white; font-size: 15px; text-decoration: none; border-radius: 15px; line-height: 30px;'>Encuesta</a>
-                    </td>
-                </tr>
-            </table>
-        """
-    
-    HeaderHtml = f"<center><img src='cid:imagen' style='width: 560px;'></center>"
-    FooterHtml = f"<center><img src='cid:imagen2' style='width: 560px;'></center>"
-
-    
-    mensaje = f"""
-                <html>
-                    <style>
-                        body {{
-                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                        }}
-                    </style>
-                    {HeaderHtml}
-                    <body>
-                        <br><br><center>¡Hola !<br><br>
-                        ¿Nos ayudás a conocerte y brindarte un mejor servicio?<br>
-                        Te invitamos a calificar tu experiencia en {unidad_negocio}<br><br>
-                        {botonHtml}<br>
-                        Te toma 1 minuto y los datos recabados son con fines estadísticos.<br><br>
-                        ¡Gracias por tu tiempo!</center><br><br>
-                        <br><br>
-                        {FooterHtml}
-                    </body>
-                </html>
-            """
-    #fuente 11.25, agregar nombre, y cambiar unidad de negocio por negocio origen o lo que sea, pero que sea coloquial.
-            
-    msg = MIMEMultipart()
-    msg.attach(MIMEText(mensaje, 'html'))
-    
-        # Adjuntar imágenes
-    with open(rutaImagenHeader, 'rb') as file:
-        imagen_adjunta = MIMEImage(file.read(), name=os.path.basename(rutaImagenHeader))
-        imagen_adjunta.add_header('Content-ID', '<imagen>')
-        msg.attach(imagen_adjunta)
-
-    with open(rutaImagenFooter, 'rb') as file:
-        imagen_firma_adjunta = MIMEImage(file.read(), name=os.path.basename(rutaImagenFooter))
-        imagen_firma_adjunta.add_header('Content-ID', '<imagen2>')
-        msg.attach(imagen_firma_adjunta)
-
-    
-    msg['Subject'] = 'Encuesta'
-    msg['From'] = 'noreply.dataanalytics@sanjuandedios.org.ar'
-    if env=="dev":
-        msg['To'] = 'lfacundonazar@gmail.com'
-    #else: 
-    #    msg['To'] = paciente[0]
-        pass
-    print (msg['To'])
-    #print(unidad_negocio, link_form)
-    server.sendmail('noreply.dataanalytics@sanjuandedios.org.ar', msg['To'], msg.as_string())
-    #insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
-    print("mail enviado")
     server.quit()
 
 # Función para insertar un registro en la tabla de encuestas después del envío

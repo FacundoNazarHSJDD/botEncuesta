@@ -1,0 +1,14 @@
+{
+    "database":{
+        "server":"10.0.0.235",
+        "database":"DW",
+        "username":"Scheduler_02",
+        "password":"Hospi21*talDw02"
+    },
+    "email":{
+        "smtp_server":"smtp-mail.outlook.com",
+        "smtp_port":587,
+        "email_address":"noreply.dataanalytics@sanjuandedios.org.ar",
+        "email_password":"Hospital20d"
+    }
+}
