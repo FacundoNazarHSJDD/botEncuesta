@@ -1,4 +1,5 @@
 import pyodbc
+from smtplib import SMTPRecipientsRefused
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -20,7 +21,7 @@ def cargar_configuracion():
         return None
 
 # Variable de entorno que indica el entorno de ejecución (desarrollo o producción)
-env=""
+env="PRD"
 
 # Diccionario que mapea el nombre de la encuesta a la consulta SQL correspondiente
 diccionario_querys={
@@ -479,9 +480,13 @@ def enviar_correo_individual(lista_pacientes, link_form, unidad_negocio, configu
             pass
         print (msg['To'])
         #print(unidad_negocio, link_form)
-        server.sendmail(configuracion['email']['email_address'], msg['To'], msg.as_string())
-        insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
-        print("mail enviado")
+        try:
+            server.sendmail(configuracion['email']['email_address'], msg['To'], msg.as_string())
+            insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
+            print("mail enviado")
+        except (SMTPRecipientsRefused) as e:
+            print(e)
+        
     server.quit()
 
 # Función para insertar un registro en la tabla de encuestas después del envío
@@ -511,12 +516,12 @@ try:
     print("conexion")
     diccionario_links = obtener_diccionario_links(conexion)
     print("dicc_links")
-    envio_correos = enviar_correos(diccionario_links, diccionario_querys, conexion, configuracion)
-    print("Terminado")
 except pyodbc.Error as e:
     print(f"Error de base de datos: {e}")
-except smtplib.SMTPException as e:
-    print(f"Error al enviar correos electrónicos: {e}")
-finally:
-    if 'conexion' in locals():
-        conexion.close()
+
+#try:
+envio_correos = enviar_correos(diccionario_links, diccionario_querys, conexion, configuracion)
+print("Terminado")
+#except smtplib.SMTPException as e:
+#    print(f"Error al enviar correos electrónicos: {e}")
+
