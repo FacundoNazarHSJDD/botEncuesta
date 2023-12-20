@@ -1,5 +1,5 @@
 import pyodbc
-from smtplib import SMTPRecipientsRefused
+from smtplib import SMTPRecipientsRefused,SMTPServerDisconnected
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -484,7 +484,7 @@ def enviar_correo_individual(lista_pacientes, link_form, unidad_negocio, configu
             server.sendmail(configuracion['email']['email_address'], msg['To'], msg.as_string())
             insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
             print("mail enviado")
-        except (SMTPRecipientsRefused) as e:
+        except (SMTPRecipientsRefused,SMTPServerDisconnected) as e:
             print(e)
         
     server.quit()
