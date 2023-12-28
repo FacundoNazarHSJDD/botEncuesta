@@ -5,7 +5,7 @@ a = Analysis(
     ['botEncuestas.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('config.json', '.'), ('Footer.png', '.'), ('Header.png', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

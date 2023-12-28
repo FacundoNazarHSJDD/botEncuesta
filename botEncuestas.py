@@ -7,6 +7,8 @@ from email.mime.image import MIMEImage
 import pandas as pd
 import json
 import os
+import unidecode
+
 
 def cargar_configuracion():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -356,7 +358,6 @@ and tfi.ID_PACIENTE not in (select id_paciente from dw.dbo.Dw_Registro_Encuestas
 	group by tfi.ID_PACIENTE,tdp.APELLIDO_NOMBRE_PACIENTE ,tdsc.SERVICIO_ORIGEN , tdp.MAIL_1, datepart (w,tfi.FECHA_ALTA_MEDICA ) """,
 }
 
-
 # Función para conectar a la base de datos con las credenciales cargadas desde el archivo JSON
 def conectar_bd(configuracion):
     connection_string = f"DRIVER={{SQL Server}};SERVER={configuracion['server']};DATABASE={configuracion['database']};UID={configuracion['username']};PWD={configuracion['password']}"
@@ -375,19 +376,23 @@ def obtener_diccionario_links(connection):
         diccionario_links[row.Encuesta] = row.Link
     return diccionario_links
 
-# Función para enviar correos electrónicos
+def quitar_tildes(input_str):
+    # Utiliza unidecode para eliminar los acentos
+    return unidecode.unidecode(input_str)
+
 def enviar_correos(diccionario_links, diccionario_querys, conexion, configuracion):
     for unidad_negocio, query in diccionario_querys.items():
         lista_pacientes = []
         print(unidad_negocio)
-        #print(query)
         cursor = conexion.cursor()
         cursor.execute(query)
         
         for row in cursor.fetchall():
-            #print(row)
+            mail_paciente = quitar_tildes(row.MAIL_PACIENTE)  # Aplica la función a la dirección de correo electrónico
+            apellido_nombre_paciente = quitar_tildes(row.APELLIDO_NOMBRE_PACIENTE)  # Aplica la función al nombre del paciente
+            servicio_origen = quitar_tildes(row.SERVICIO_ORIGEN)  # Aplica la función al servicio de origen
             # Añade cada paciente a la lista con sus detalles
-            lista_pacientes.append([row.MAIL_PACIENTE, row.ID_PACIENTE, row.APELLIDO_NOMBRE_PACIENTE, row.SERVICIO_ORIGEN])
+            lista_pacientes.append([mail_paciente, row.ID_PACIENTE, apellido_nombre_paciente, servicio_origen])
 
         # Obtén los resultados de la consulta en un DataFrame
         resultados = pd.DataFrame(cursor.fetchall())
@@ -481,7 +486,7 @@ def enviar_correo_individual(lista_pacientes, link_form, unidad_negocio, configu
         print (msg['To'])
         #print(unidad_negocio, link_form)
         try:
-            server.sendmail(configuracion['email']['email_address'], msg['To'], msg.as_string())
+            server.sendmail(configuracion['email']['email_address'], msg['To'], msg.as_string().encode('utf-8'))
             insertar_registro_encuestas(conexion, paciente, unidad_negocio, env)
             print("mail enviado")
         except (SMTPRecipientsRefused,SMTPServerDisconnected) as e:
